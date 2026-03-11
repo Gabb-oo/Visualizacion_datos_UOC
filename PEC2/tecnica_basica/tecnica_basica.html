@@ -39,7 +39,13 @@
     .contextual.linea-conexion.activado { opacity: 0.5; }
 
     #apendice { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #444; }
-    .hitos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .hitos-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      grid-template-rows: repeat(4, auto); /* Define 4 filas para distribuir 4 a la izquierda y 3 a la derecha */
+      grid-auto-flow: column; /* Cambia el flujo de horizontal (zigzag) a vertical */
+      gap: 15px; 
+    }
     .hito-item strong { color: #0057ff; }
     .fuentes-footer { 
       margin-top: 40px; 
@@ -254,3 +260,4 @@
   </script>
 </body>
 </html>
+
