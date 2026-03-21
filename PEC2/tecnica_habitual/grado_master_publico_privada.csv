@@ -1,0 +1,37 @@
+﻿source;target;value;from;to;pct_global;pct_nodo;;
+Grado;Pública;161555;0;1;44.3%;78.9% de Grado;;
+Grado;Privada;43245;0;1;11.9%;21.1% de Grado;;
+Máster;Pública;74631;0;1;20.5%;46.6% de Máster;;
+Máster;Privada;85492;0;1;23.4%;53.4% de Máster;;
+Pública;Ciencias Sociales y Jurídicas;113722;1;2;31.2%;48.5% de Pública;;
+Pública;Ingeniería y Arquitectura;40700;1;2;11.2%;17.4% de Pública;;
+Pública;Artes y Humanidades;23377;1;2;6.4%;10.0% de Pública;;
+Pública;Ciencias de la Salud;39804;1;2;10.9%;17.0% de Pública;;
+Pública;Ciencias;18583;1;2;5.1%;7.9% de Pública;;
+Privada;Ciencias Sociales y Jurídicas;89153;1;2;24.4%;69.3% de Privada;;
+Privada;Ingeniería y Arquitectura;11508;1;2;3.2%;8.9% de Privada;;
+Privada;Artes y Humanidades;5213;1;2;1.4%;4.0% de Privada;;
+Privada;Ciencias de la Salud;22065;1;2;6.0%;17.1% de Privada;;
+Privada;Ciencias;798;1;2;0.2%;0.6% de Privada;;
+;;;;;;;;
+;;;;;;;;Cómo se calculó cada fila:
+;;;;;;;;
+;;;;;;;;col 0→1 — suma por nivel+tipo:
+;;;;;;;;
+;;;;;;;;Grado+Pública = 75.221+27.142+16.193+30.930+12.069 = 161.555
+;;;;;;;;Grado+Privada = 25.101+3.523+2.066+12.079+476 = 43.245
+;;;;;;;;Máster+Pública = 38.501+13.558+7.184+8.874+6.514 = 74.631
+;;;;;;;;Máster+Privada = 64.052+7.985+3.147+9.986+322 = 85.492
+;;;;;;;;
+;;;;;;;;col 1→2 — suma por tipo+rama (Grado+Máster juntos):
+;;;;;;;;
+;;;;;;;;Pública+CC.Sociales = 75.221+38.501 = 113.722
+;;;;;;;;Privada+CC.Sociales = 25.101+64.052 = 89.153
+;;;;;;;;etc.
+;;;;;;;;
+;;;;;;;;
+"Lecturas destacadas:
+
+- El 78,9% de los graduados de Grado van a universidad pública, pero solo el 46,6% de los de Máster
+- La universidad Privada concentra el 69,3% de sus egresados en CC. Sociales, frente al 48,5% de la Pública
+- Ciencias es la rama más minoritaria en privada: solo el 0,6% de sus egresados";;;;;;;;
