@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Evolución del precio del gasóleo - Visualización de datos - PEC2 - UOC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; margin: 40px; background: #f2f4f7; }
+    #contenedor { background: white; border-radius: 12px; padding: 40px; max-width: 900px; margin: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h1 { font-weight: 600; font-size: 28px; margin-bottom: 5px; margin-top: 1px}
+    .subtitulo { color: #666; margin-top: 0; margin-bottom: 20px; font-size: 16px; }
+    .controles { display: flex; gap: 10px; margin-bottom: 20px; }
+    button { padding: 10px 18px; cursor: pointer; background: #0057ff; color: white; border: none; border-radius: 6px; font-size: 14px; transition: all 0.2s; }
+    button:hover { background: #003fcc; }
+    button.secundario { background: #eef2ff; color: #0057ff; border: 1px solid #0057ff; }
+    button.secundario:hover { background: #e0e7ff; }
+    #boton-reset { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+
+    .descripcion { margin-bottom: 20px; max-width: 700px; line-height: 1.5; color: #333; height: 3.5em; }
+    svg { overflow: visible; background: #fafafa; border-radius: 4px; }
+    .linea { fill: none; stroke: #769ff1; stroke-width: 3px; }
+    
+    /* --- TRANSICIÓN SINCRONIZADA --- */
+    .contextual {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 1.2s ease-in-out, visibility 1.2s ease-in-out;
+    }
+    
+    .contextual.activado {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .linea-conexion { stroke: #0057ff; stroke-width: 1.5px; stroke-dasharray: 2,2; }
+    
+    /* Ajuste de opacidad para líneas */
+    .contextual.linea-conexion:not(.activado) { opacity: 0; }
+    .contextual.linea-conexion.activado { opacity: 0.5; }
+
+    #apendice { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #444; }
+    .hitos-grid { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          grid-template-rows: repeat(4, auto); /* Define 4 filas para distribuir 4 a la izquierda y 3 a la derecha */
+          grid-auto-flow: column; /* Cambia el flujo de horizontal (zigzag) a vertical */
+          gap: 15px; 
+        }
+    .hito-item strong { color: #0057ff; }
+    .fuentes-footer { 
+      margin-top: 40px; 
+      padding-top: 15px; 
+      border-top: 1px solid #eee; 
+      font-size: 11px; 
+      color: #888; 
+      line-height: 1.6; 
+    }
+    .fuentes-footer a { color: #0057ff; text-decoration: none; }
+    .fuentes-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div id="contenedor">
+    
+    
+    <div class="contextual">
+      
+        <h1 id="titulo">Timeline del precio del gasóleo en España (2002-2026)</h1>
+        <p class="subtitulo" id="subtitulo">Análisis de hitos históricos</p>
+        <p style="font-size: 12px; color: #888; margin-top: -15px; margin-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 30px;
+    padding-bottom: 20px;">
+            Gabriel Rivadeneira - Visualización de Datos - PEC 2 - Máster Ciencia de Datos (UOC)
+        </p>
+
+        <p class="descripcion" id="texto-descripcion">La historia del combustible es la historia de sus crisis.</p>
+    </div>
+    
+    <div class="controles">
+      <button id="boton-modo">Con contexto</button>
+      
+      <button id="boton-reset" class="contextual">Reset</button>
+    </div>
+
+    <div id="grafico"></div>
+
+    <div id="apendice" class="contextual">
+      <h3>Cronología de Impactos en el Mercado</h3>
+      <div class="hitos-grid" id="grid-hitos"></div>
+    </div>
+    <div class="fuentes-footer contextual">
+      <strong>Fuente de datos:</strong> 
+      <a href="https://www.epdata.es/datos/precio-gasolina-gasoleo-diesel-espana-cifras-datos-estadisticas/420#450766" target="_blank">EpData / Boletín Petrolero UE</a>.
+      <br>
+      <strong>Fuentes de información:</strong> 
+      <a href="https://www.elmundo.es/especiales/2008/10/economia/crisis_financiera/lehman_brothers.html" target="_blank">Crisis 2008</a> | 
+      <a href="https://elpais.com/economia/2014/11/27/actualidad/1417083049_568102.html" target="_blank">OPEP 2014</a> | 
+      <a href="https://www.rtve.es/noticias/20200215/cronologia-del-coronavirus/2000282.shtml" target="_blank">COVID-19</a> | 
+      <a href="https://www.bbc.com/mundo/noticias-60506509" target="_blank">Guerra Ucrania</a> |
+      <a href="https://www.lavanguardia.com/internacional/20231007/9283151/ataque-hamas-israel-gaza-guerra.html" target="_blank">Conflicto Gaza</a>.
+    </div>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const margin = { top: 60, right: 60, bottom: 40, left: 50 };
+    const width = 850 - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+
+    const svg = d3.select("#grafico").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const parseISO = d3.utcParse("%Y-%m-%d");
+    const parseWeek = d3.utcParse("%G-W%V-%u");
+
+    let abortarHistoria = false;
+    let historiaEnCurso = false;
+
+    const descripcionesHitos = {
+      "Crisis 2008": "Quiebra de Lehman Brothers y desplome de la demanda global de petróleo.",
+      "Colapso 2014": "Reunión OPEP: decisión de no recortar producción pese al exceso de oferta.",
+      "COVID-19": "Inicio del impacto severo y restricciones de movilidad en Europa.",
+      "Recuperación": "Aumento de demanda tras el fin de los confinamientos estrictos.",
+      "Guerra Ucrania": "Invasión rusa que disparó el gasóleo >2 €/L en España.",
+      "Conflicto Gaza": "Ataque de Hamás e inestabilidad en el suministro del crudo Brent.",
+      "Campaña EEUU-Irán": "Escenario de máxima tensión en el Estrecho de Ormuz que está provocando bloqueos en las rutas de exportación de crudo. Proyecta una gran subida."
+    };
+
+    d3.csv("evolucion_del_precio_de_gasoleo_en_espana.csv").then(datos => {
+      const eventos = [
+        { fecha: parseISO("2008-09-15"), texto: "Crisis 2008" },
+        { fecha: parseISO("2014-11-27"), texto: "Colapso 2014" },
+        { fecha: parseISO("2020-02-15"), texto: "COVID-19" },
+        { fecha: parseISO("2021-07-01"), texto: "Recuperación" },
+        { fecha: parseISO("2022-02-24"), texto: "Guerra Ucrania" },
+        { fecha: parseISO("2023-10-07"), texto: "Conflicto Gaza" },
+        { fecha: parseISO("2026-02-28"), texto: "Campaña EEUU-Irán" }
+      ];
+
+// Llenar apéndice con enlaces a fuentes oficiales
+      const fuentes = {
+        "Crisis 2008": "https://www.elmundo.es/especiales/2008/10/economia/crisis_financiera/lehman_brothers.html",
+        "Colapso 2014": "https://elpais.com/economia/2014/11/27/actualidad/1417083049_568102.html",
+        "COVID-19": "https://www.rtve.es/noticias/20200215/cronologia-del-coronavirus/2000282.shtml",
+        "Recuperación": "https://es.euronews.com/2021/07/01/la-recuperacion-economica-post-pandemia",
+        "Guerra Ucrania": "https://www.bbc.com/mundo/noticias-60506509",
+        "Conflicto Gaza": "https://www.lavanguardia.com/internacional/20231007/9283151/ataque-hamas-israel-gaza-guerra.html",
+        "Campaña EEUU-Irán": "#" // Hito ficticio/proyectado
+      };
+
+      const grid = d3.select("#grid-hitos");
+      eventos.forEach(ev => {
+        grid.append("div").attr("class", "hito-item").html(
+          `<a href="${fuentes[ev.texto]}" target="_blank" style="text-decoration:none; color:inherit;">
+            <strong>${ev.texto}:</strong>
+          </a> ${descripcionesHitos[ev.texto]}`
+        );
+      });
+      datos.forEach(d => {
+        d.Precio = +d.Precio;
+        d.fecha = parseWeek(`${d.Año}-W${String(d.Periodo.replace("Semana ", "")).padStart(2, "0")}-1`);
+      });
+
+      const xOriginal = d3.scaleUtc().domain([d3.min(datos, d => d.fecha), d3.timeMonth.offset(d3.max(datos, d => d.fecha), 2)]).range([0, width]);
+      const yOriginal = d3.scaleLinear().domain([d3.min(datos, d => d.Precio) - 0.05, d3.max(datos, d => d.Precio) + 0.05]).range([height, 0]);
+
+      let x = xOriginal.copy(), y = yOriginal.copy();
+      const linea = d3.line().x(d => x(d.fecha)).y(d => y(d.Precio)).curve(d3.curveMonotoneX);
+
+      svg.append("defs").append("clipPath").attr("id", "clip").append("rect").attr("width", width + 60).attr("x", -5).attr("y", -margin.top).attr("height", height + margin.top + 40);
+      const areaGrafico = svg.append("g").attr("clip-path", "url(#clip)");
+      const pathBase = areaGrafico.append("path").datum(datos).attr("class", "linea").attr("d", linea);
+
+      const grupoEventos = areaGrafico.append("g");
+      const conexiones = grupoEventos.selectAll(".linea-conexion").data(eventos).enter().append("line").attr("class", "linea-conexion contextual");
+      const etiquetas = grupoEventos.selectAll(".etiqueta-evento").data(eventos).enter().append("text").attr("class", "etiqueta-evento contextual").style("font-size", "10px").style("fill", "#0057ff");
+      const puntosEvento = grupoEventos.selectAll(".punto-evento").data(eventos).enter().append("circle").attr("class", "punto-evento contextual").attr("r", 4).style("fill", "#0057ff");
+
+      const ejeX = areaGrafico.append("g").attr("class", "eje contextual").attr("transform", `translate(0,${height})`);
+      const ejeY = svg.append("g").attr("class", "eje contextual");
+
+      function actualizarEscena() {
+        pathBase.attr("d", linea);
+        ejeX.call(d3.axisBottom(x).ticks(d3.timeYear.every(1)).tickFormat(d3.timeFormat("%Y")));
+        ejeY.call(d3.axisLeft(y).ticks(6));
+        
+        conexiones.attr("x1", d => x(d.fecha)).attr("x2", d => x(d.fecha)).attr("y1", d => {
+            const i = d3.bisector(dt => dt.fecha).left(datos, d.fecha);
+            return i < datos.length ? y(datos[i].Precio) : height;
+        }).attr("y2", (d, i) => (i % 2 === 0) ? -15 : -35);
+
+        etiquetas.text(d => d.texto).attr("x", d => x(d.fecha)).attr("y", (d, i) => (i % 2 === 0) ? -20 : -40).attr("text-anchor", d => (x(d.fecha) > width - 80) ? "end" : "middle");
+        puntosEvento.attr("cx", d => x(d.fecha)).attr("cy", d => {
+            const i = d3.bisector(dt => dt.fecha).left(datos, d.fecha);
+            return i < datos.length ? y(datos[i].Precio) : height;
+        });
+      }
+
+      const zoomBehavior = d3.zoom().scaleExtent([1, 20]).translateExtent([[0, 0], [width, height]]).on("zoom", (e) => {
+        x = e.transform.rescaleX(xOriginal);
+        actualizarEscena();
+      });
+      d3.select("svg").call(zoomBehavior);
+
+      function resetVista() {
+        d3.select("svg").transition().duration(1000).ease(d3.easeCubicInOut).call(zoomBehavior.transform, d3.zoomIdentity);
+        // Restaurar el texto original de la descripción
+        d3.select("#texto-descripcion").text("La historia del combustible es la historia de sus crisis.");
+      
+      }
+
+      function cambiarModo(contexto) {
+        if (!contexto) {
+            abortarHistoria = true;
+            historiaEnCurso = false;
+            resetVista();
+        }
+        
+        d3.selectAll(".contextual").classed("activado", contexto);
+        actualizarEscena();
+      }
+
+      async function reproducirHistoria() {
+        if (historiaEnCurso) return;
+        historiaEnCurso = true;
+        abortarHistoria = false;
+        cambiarModo(true);
+        
+        d3.selectAll(".etiqueta-evento, .punto-evento, .linea-conexion").classed("activado", false);
+        
+        const svgElement = d3.select("svg");
+        await svgElement.transition().duration(750).call(zoomBehavior.transform, d3.zoomIdentity).end();
+
+        for (let i = 0; i < eventos.length; i++) {
+          if (abortarHistoria) break;
+          const ev = eventos[i];
+          const escala = 3;
+          const tx = width / 2 - xOriginal(ev.fecha) * escala;
+          const transform = d3.zoomIdentity.translate(tx, 0).scale(escala);
+          
+          await svgElement.transition().duration(1500).ease(d3.easeCubicInOut).call(zoomBehavior.transform, transform).end();
+
+          if (abortarHistoria) break;
+          d3.selectAll(".etiqueta-evento, .punto-evento, .linea-conexion").filter(d => d.fecha === ev.fecha).classed("activado", true);
+          d3.select("#texto-descripcion").text(`${ev.texto}: ${descripcionesHitos[ev.texto]}`);
+          
+          let t = 0;
+          while (t < 2500) { if (abortarHistoria) break; await new Promise(r => setTimeout(r, 100)); t += 100; }
+        }
+        historiaEnCurso = false;
+      }
+
+      d3.select("#boton-modo").on("click", function() {
+        const estado = d3.select(this).text() === "Con contexto";
+        cambiarModo(estado);
+        d3.select(this).text(estado ? "Sin contexto" : "Con contexto");
+      });
+
+      d3.select("#boton-historia").on("click", reproducirHistoria);
+      d3.select("#boton-reset").on("click", resetVista);
+
+      cambiarModo(false);
+    });
+  </script>
+</body>
+</html>
