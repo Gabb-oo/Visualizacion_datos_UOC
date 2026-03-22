@@ -19,8 +19,7 @@
     .descripcion { margin-bottom: 20px; max-width: 700px; line-height: 1.5; color: #333; height: 3.5em; }
     svg { overflow: visible; background: #fafafa; border-radius: 4px; }
     .linea { fill: none; stroke: #769ff1; stroke-width: 3px; }
-    
-    /* --- TRANSICIÓN SINCRONIZADA --- */
+
     .contextual {
       opacity: 0;
       visibility: hidden;
@@ -34,7 +33,7 @@
 
     .linea-conexion { stroke: #0057ff; stroke-width: 1.5px; stroke-dasharray: 2,2; }
     
-    /* Ajuste de opacidad para líneas */
+    
     .contextual.linea-conexion:not(.activado) { opacity: 0; }
     .contextual.linea-conexion.activado { opacity: 0.5; }
 
@@ -42,8 +41,8 @@
     .hitos-grid { 
           display: grid; 
           grid-template-columns: 1fr 1fr; 
-          grid-template-rows: repeat(4, auto); /* Define 4 filas para distribuir 4 a la izquierda y 3 a la derecha */
-          grid-auto-flow: column; /* Cambia el flujo de horizontal (zigzag) a vertical */
+          grid-template-rows: repeat(4, auto); 
+          grid-auto-flow: column; 
           gap: 15px; 
         }
     .hito-item strong { color: #0057ff; }
@@ -138,7 +137,7 @@
         { fecha: parseISO("2026-02-28"), texto: "Campaña EEUU-Irán" }
       ];
 
-// Llenar apéndice con enlaces a fuentes oficiales
+
       const fuentes = {
         "Crisis 2008": "https://www.britannica.com/event/bankruptcy-of-Lehman-Brothers",
         "Colapso 2014": "https://cepr.org/voxeu/columns/why-did-price-oil-fall-after-june-2014",
@@ -205,7 +204,7 @@
 
       function resetVista() {
         d3.select("svg").transition().duration(1000).ease(d3.easeCubicInOut).call(zoomBehavior.transform, d3.zoomIdentity);
-        // Restaurar el texto original de la descripción
+        
         d3.select("#texto-descripcion").text("La historia del combustible es la historia de sus crisis.");
       
       }
