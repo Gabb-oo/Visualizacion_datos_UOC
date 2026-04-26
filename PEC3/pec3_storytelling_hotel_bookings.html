@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Paradigma Portugués - Storytelling</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-city: #e76f51;
+            --color-resort: #264653;
+            --text-main: #2d3436;
+            --bg-page: #f0f2f5;
+            /* Altura del cajón de KPIs — cámbiala aquí si quieres ajustar */
+            --drawer-h: 90px;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            padding: 80px 20px 60px;
+        }
+
+        header h1 { font-weight: 700; font-size: clamp(1.8rem, 4vw, 3rem); color: #1e272e; margin-bottom: 0.5rem; }
+        header p  { font-weight: 300; font-size: clamp(1rem, 2vw, 1.2rem); color: #7f8c8d; }
+
+        .metadata {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #95a5a6;
+            line-height: 1.6;
+        }
+
+        /* ── Scrollytelling layout ── */
+        #scrolly {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            gap: 20px;
+            padding: 0 20px;
+        }
+
+        /* ── Figura sticky (panel de visualización) ── */
+        figure {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 5vh;
+            /* FIX: Usamos calc para que el panel nunca supere la pantalla visible */
+            width: 62%;
+            height: 90vh;
+            /* FIX: altura mínima para laptops pequeñas y máxima para no ser enorme */
+            min-height: 480px;
+            max-height: 780px;
+            margin: 0;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;   /* FIX: usamos flex para gestionar el espacio interno */
+            transition: transform 0.8s ease, opacity 0.8s ease;
+        }
+
+        /* #viz ocupa todo el espacio disponible de la figura */
+        #viz {
+            position: relative;
+            flex: 1;
+            min-height: 0;           /* necesario para que flex funcione bien con overflow */
+            overflow: hidden;
+        }
+
+        article {
+            width: 33%;
+            padding-bottom: 30vh;
+            transition: opacity 0.8s ease;
+        }
+
+        .step {
+            margin-bottom: 90vh;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: all 0.5s ease;
+            opacity: 0.2;
+            transform: translateX(20px);
+        }
+
+        .step.active {
+            opacity: 1;
+            transform: translateX(0);
+            box-shadow: 0 15px 35px rgba(231, 111, 81, 0.15);
+        }
+
+        h2 { color: var(--color-city); font-size: clamp(1.1rem, 2vw, 1.5rem); margin-top: 0; }
+        p  { line-height: 1.7; font-size: clamp(0.85rem, 1.5vw, 1rem); color: #4b5563; }
+
+        .formula {
+            font-size: 0.82rem;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            color: #636e72;
+            border-left: 4px solid var(--color-resort);
+            margin-top: 15px;
+        }
+
+        /* ── Leyenda ── */
+        .axis-label { font-size: 12px; font-weight: 700; fill: #b2bec3; text-transform: uppercase; letter-spacing: 1px; }
+
+        .legend {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.92);
+            padding: 5px 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            font-size: 0.75rem;
+            z-index: 100;
+            display: flex;
+            gap: 20px;
+            white-space: nowrap;
+            transition: opacity 0.8s ease;
+        }
+        .legend-item { display: flex; align-items: center; }
+        .legend-color { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+
+        /* ── Cajón de KPIs ── */
+        /* FIX: El cajón ya NO es absolute dentro del canvas SVG.
+           Vive FUERA de #viz, al fondo de <figure>, con altura fija */
+        .data-drawer {
+            flex-shrink: 0;
+            height: var(--drawer-h);
+            background: rgba(255,255,255,0.97);
+            border-top: 1px solid #eee;
+            border-radius: 0 0 24px 24px;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.04);
+            z-index: 101;
+            transition: opacity 0.5s ease;
+            padding: 0 16px;
+            gap: 8px;
+        }
+
+        .kpi-box {
+            text-align: center;
+            flex: 1;
+            min-width: 0;       /* permite que flex recorte si es necesario */
+        }
+        .kpi-value {
+            display: block;
+            font-size: clamp(0.95rem, 1.8vw, 1.4rem);
+            font-weight: 700;
+            color: var(--color-city);
+            white-space: nowrap;
+        }
+        .kpi-label {
+            font-size: clamp(0.55rem, 0.85vw, 0.68rem);
+            text-transform: uppercase;
+            color: #7f8c8d;
+            letter-spacing: 0.5px;
+            line-height: 1.3;
+            /* permite salto de línea en labels largas en vez de desbordarse */
+            white-space: normal;
+            word-break: break-word;
+        }
+        .city-val    { color: var(--color-city)   !important; }
+        .resort-val  { color: var(--color-resort) !important; }
+        .neutral-val { color: #2d3436; }
+
+        /* ── Paneles superpuestos (conclusión, datos, referencias) ── */
+        #final-panel, #references-panel, #conclusion-panel {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            z-index: 200;
+        }
+
+        #references-panel {
+            justify-content: flex-start;
+            overflow-y: auto;
+        }
+
+        #final-panel.visible, #references-panel.visible, #conclusion-panel.visible {
+            opacity: 1; pointer-events: all;
+        }
+        #final-panel h2, #references-panel h2 { color: var(--color-city); font-size: clamp(1.3rem, 3vw, 2rem); margin-bottom: 20px; }
+        #final-panel p { font-size: clamp(0.9rem, 1.5vw, 1.1rem); line-height: 1.8; color: #4b5563; max-width: 80%; }
+
+        .ref-list { font-size: 0.82rem; line-height: 1.5; color: #4b5563; text-align: left; max-width: 90%; }
+        .ref-list p { margin: 5px 0; font-size: 0.82rem; }
+
+        /* Pasos sin tarjeta visual */
+        .step[data-step="6"],
+        .step[data-step="7"] {
+            background: none !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        /* Vista centrada para los paneles finales */
+        #scrolly.centered-view figure {
+            transform: translateX(26.923%);
+        }
+        #scrolly.centered-view article {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Mini-gráficos Antes/Después */
+        .cleaning-comparison { display: flex; gap: 10px; margin-top: 15px; }
+        .mini-chart { background: #f8f9fa; border-radius: 8px; padding: 10px 5px; flex: 1; text-align: center; }
+        .mini-chart span { font-size: 0.65rem; letter-spacing: 0.5px; margin-bottom: 5px; display: block; }
+        .bar-before { fill: #fab1a0; }
+        .bar-after  { fill: var(--color-city); }
+
+        /* Waffle Chart */
+        .waffle-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 180px;
+        }
+        .waffle-dot { width: 15px; height: 15px; border-radius: 2px; }
+
+        /* ── Barra de progreso ── */
+        #progress-bar-wrap {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+             background: rgba(0,0,0,0.08); 
+            /*background: red;*/
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        #progress-bar-wrap.visible { opacity: 1; }
+        #progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--color-city), var(--color-resort));
+            border-radius: 0 2px 2px 0;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>El Paradigma Portugués</h1>
+        <p>Descifrando el comportamiento de 119.390 viajeros.</p>
+        <div class="metadata">
+            <div><strong>Gabriel Nicolás Rivadeneira Gómez</strong> <strong>|</strong> Visualización de datos. PEC 3. <strong>|</strong> Máster en ciencia de datos. <strong>|</strong> UOC.</div>
+        </div>
+    </header>
+
+    <main id="scrolly">
+        <!-- FIX: figure ahora tiene flex-direction:column; #viz crece, .data-drawer queda fijo abajo -->
+        <figure>
+            <div id="viz">
+                <div class="legend" id="main-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--color-city);"></div>
+                        <span>City Hotel (Lisboa)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--color-resort);"></div>
+                        <span>Resort Hotel (Algarve)</span>
+                    </div>
+                </div>
+
+                <div id="final-panel">
+                    <h2>Origen de los Datos</h2>
+                    <p>Los datos presentados en esta visualización (volúmenes de reserva, proporciones de preferencia nacional y tarifas medias ADR) han sido extraídos directamente de los resultados obtenidos en el análisis visual previo realizado con R, siguiendo las evidencias estadísticas mostradas en el notebook interactivo <strong>hotel_bookings.Rmd</strong>.</p>
+                </div>
+
+                <div id="references-panel">
+                    <h2>Referencias</h2>
+                    <div class="ref-list">
+                        <p><strong>1.</strong> Página 2 (Resultado de dim(x) que confirma las 119.390 filas).</p>
+                        <p><strong>2.</strong> Página 18 (Párrafo explicativo sobre la distribución de reservas por hotel).</p>
+                        <p><strong>3.</strong> Página 2 (Resumen inicial de la variable hotel con 79.330 y 40.060 reservas).</p>
+                        <p><strong>4.</strong> Página 5 (Confirmación visual en tabla de la reserva con 55 adultos).</p>
+                        <p><strong>5.</strong> Página 8 (Filtro para eliminar tarifas ADR negativas y valores &gt; 1000€).</p>
+                        <p><strong>6.</strong> Página 23 (Fila de la tabla con el porcentaje del 63,7% para portugueses).</p>
+                        <p><strong>7.</strong> Página 23 (Fila de la tabla con el porcentaje del 36,3% para portugueses).</p>
+                        <p><strong>8.</strong> Página 9 (Fórmula matemática del ADR: TotalRoomsRevenue / RoomsSold).</p>
+                        <p><strong>9.</strong> Página 9 (Definición conceptual del ADR).</p>
+                        <p><strong>10.</strong> Página 4 (Identificación de la anomalía de 55 adultos).</p>
+                        <p><strong>11.</strong> Página 5 (Instrucción de filtrado para eliminar reservas con 10 o más adultos).</p>
+                        <p><strong>12.</strong> Página 17 (Nota técnica sobre la presencia de 4 valores NA en ADR).</p>
+                        <p><strong>13.</strong> Página 17 (Resumen estadístico que muestra los 4 NAs).</p>
+                        <p><strong>14.</strong> Página 21 (Resultado del test estadístico que indica n_obs = 117.391).</p>
+                        <p><strong>15.</strong> Página 21 (Media calculada para Lisboa: 106,89€).</p>
+                        <p><strong>16.</strong> Página 21 (Media calculada para el Resort: 96,77€).</p>
+                        <p><strong>17.</strong> Página 21 (Diferencia media reportada de 10,12€).</p>
+                        <p><strong>18.</strong> Página 17 (Valor máximo de ADR tras la limpieza: 510,00€).</p>
+                    </div>
+                </div>
+
+                <div id="conclusion-panel">
+                    <h2>Conclusión</h2>
+                    <p>El estudio revela una paradoja curiosa: el turista local sacrifica el ahorro económico del resort por la conveniencia de la capital, consolidando a <strong>Lisboa</strong> como el motor premium del turismo portugués.</p>
+                </div>
+            </div>
+
+            <!-- FIX: el cajón está FUERA de #viz, dentro de <figure> como elemento flex hermano -->
+            <div class="data-drawer" id="data-drawer"></div>
+        </figure>
+
+        <article>
+            <div class="step active" data-step="1">
+                <h2>1. El Océano de Datos</h2>
+                <p>En el mapa vemos la distribución inicial: <strong>79.330</strong> reservas en la vibrante Lisboa frente a <strong>40.060</strong> en el relax del Algarve<sup>3</sup>.</p>
+            </div>
+
+            <div class="step" data-step="2">
+                <h2>2. Depuración del Ruido</h2>
+                <p>La limpieza es clave. Eliminamos anomalías como reservas de <strong>55 adultos</strong> o precios negativos<sup>4, 5</sup>.</p>
+                <div class="cleaning-comparison">
+                    <div class="mini-chart" id="chart-before"><span>ORIGINAL</span></div>
+                    <div class="mini-chart" id="chart-after"><span>FILTRADO</span></div>
+                </div>
+            </div>
+
+            <div class="step" data-step="3">
+                <h2>3. Preferencia Nacional</h2>
+                <p>Sorpresa: los portugueses son animales urbanos. El <strong>63,7%</strong> elige su capital<sup>6, 7</sup>.</p>
+                <div class="waffle-container" id="waffle-chart"></div>
+            </div>
+
+            <div class="step" data-step="3.5">
+                <h2>El Enigma del Precio</h2>
+                <p>Si la gran mayoría de los portugueses elige la ciudad, es natural preguntarse si están buscando una opción más económica para sus vacaciones.</p>
+            </div>
+
+            <div class="step" data-step="4">
+                <h2>4. El Precio del Asfalto</h2>
+                <p>A pesar del aire vacacional del Algarve, Lisboa es más cara. La tarifa media (ADR) alcanza los <strong>106,89€</strong>.</p>
+                <div class="formula">ADR = Ingresos / Hab. Vendidas <sup>8, 9</sup></div>
+            </div>
+
+            <div class="step" data-step="5"></div>
+            <div class="step" data-step="6"></div>
+            <div class="step" data-step="7"></div>
+        </article>
+    </main>
+</div>
+<div id="progress-bar-wrap">
+    <div id="progress-bar-fill"></div>
+</div>
+
+<script>
+    // ── Dimensiones del SVG responsivas al contenedor ──────────────────────
+    // En vez de valores fijos (650×700), leemos el espacio disponible al cargar
+    // y cuando cambia el tamaño de ventana.
+
+    const vizEl = document.getElementById("viz");
+
+    function getVizDims() {
+        // Resto de la figura = todo menos el cajón (--drawer-h = 90px)
+        const drawerH = parseInt(getComputedStyle(document.documentElement)
+            .getPropertyValue('--drawer-h')) || 90;
+        const w = vizEl.clientWidth  || 500;
+        const h = vizEl.clientHeight || 400;
+        return { w, h };
+    }
+
+    let { w: width, h: height } = getVizDims();
+
+    const svg = d3.select("#viz")
+        .append("svg")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("preserveAspectRatio", "xMidYMid meet")
+        .style("width", "100%")
+        .style("height", "100%");
+
+    // FIX: la proyección usa las dimensiones reales, no 650/700 fijas
+    const projection = d3.geoMercator()
+        .center([-8.2, 39.5])
+        .scale(4500)
+        .translate([width / 2, height / 2]);
+
+    const lisbonPos = projection([-9.1393, 38.7223]);
+    const algarvePos = projection([-8.15, 36.90]);
+
+    const mapLayer    = svg.append("g").attr("opacity", 1);
+    const labelsLayer = svg.append("g").attr("id", "labels-layer");
+    const nodesLayer  = svg.append("g");
+
+    // Dibujar Portugal
+    d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson").then(data => {
+        const portugal = data.features.filter(d => d.properties.name === "Portugal");
+        mapLayer.selectAll("path")
+            .data(portugal)
+            .join("path")
+            .attr("fill", "#f1f2f6")
+            .attr("stroke", "#dfe4ea")
+            .attr("stroke-width", 2)
+            .attr("d", d3.geoPath().projection(projection));
+    });
+
+    // ── Datos simulados ────────────────────────────────────────────────────
+    const data = d3.range(450).map(i => {
+        const isCity = i < 300;
+        const baseAdr = isCity ? 106.89 : 96.77;
+        const randomVariation = (Math.random() - 0.5) * 60;
+        return {
+            id: i,
+            hotel: isCity ? 'City' : 'Resort',
+            resident: i < 210 ? 'PRT' : 'Otr',
+            adr: Math.max(0, baseAdr + randomVariation),
+            isOutlier: i % 12 === 0
+        };
+    });
+
+    const color = d3.scaleOrdinal()
+        .domain(['City', 'Resort'])
+        .range(['#e76f51', '#264653']);
+
+    const nodes = nodesLayer.selectAll("circle")
+        .data(data)
+        .join("circle")
+        .attr("r", 4)
+        .attr("fill", d => color(d.hotel))
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.5);
+
+    const simulation = d3.forceSimulation(data)
+        .force("charge", d3.forceManyBody().strength(1))
+        .force("collision", d3.forceCollide().radius(4.5))
+        .on("tick", () => nodes.attr("cx", d => d.x).attr("cy", d => d.y));
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function clearLabels() { labelsLayer.selectAll("*").remove(); }
+
+    function createParticles(x, y, col) {
+        const particleCount = 16;
+        for (let i = 0; i < particleCount; i++) {
+            const angle    = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 60;
+            nodesLayer.append("circle")
+                .attr("class", "fragment")
+                .attr("cx", x).attr("cy", y)
+                .attr("r", Math.random() * 3.5 + 1.5)
+                .attr("fill", col)
+                .attr("opacity", 1)
+                .transition()
+                .duration(1000 + Math.random() * 800)
+                .ease(d3.easeExpOut)
+                .attr("cx", x + Math.cos(angle) * distance)
+                .attr("cy", y + Math.sin(angle) * distance)
+                .attr("opacity", 0).attr("r", 0)
+                .remove();
+        }
+    }
+
+    function clearCanvas() {
+        labelsLayer.selectAll("*").remove();
+        nodesLayer.selectAll(".fragment").remove();
+        d3.select("#final-panel").classed("visible", false);
+        d3.select("#references-panel").classed("visible", false);
+        d3.select("#conclusion-panel").classed("visible", false);
+        d3.select("#main-legend").style("opacity", 1);
+        d3.select("#scrolly").classed("centered-view", false);
+    }
+
+    function updateDrawer(step) {
+        const drawer = d3.select("#data-drawer");
+
+        if (parseInt(step) >= 5) {
+            drawer.style("opacity", 0);
+            return;
+        }
+        drawer.style("opacity", 1);
+        drawer.selectAll("*").remove();
+
+        let content = "";
+        switch(parseInt(step)) {
+            case 1:
+                content = `
+                    <div class="kpi-box"><span class="kpi-value neutral-val">119.390</span><span class="kpi-label">Reservas Totales <sup>1</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value city-val">66,4%</span><span class="kpi-label">Cuota Lisboa <sup>2</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value resort-val">33,6%</span><span class="kpi-label">Cuota Algarve <sup>2</sup></span></div>`;
+                break;
+            case 2:
+                content = `
+                    <div class="kpi-box"><span class="kpi-value neutral-val">55</span><span class="kpi-label">Máximo Outlier (Adultos) <sup>10, 4</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">&gt;10</span><span class="kpi-label">Umbral de eliminación <sup>11</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">4</span><span class="kpi-label">NAs detectados en ADR <sup>12, 13</sup></span></div>`;
+                break;
+            case 3:
+                content = `
+                    <div class="kpi-box"><span class="kpi-value city-val">63,7%</span><span class="kpi-label">Portugueses en Ciudad <sup>6</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value resort-val">36,3%</span><span class="kpi-label">Portugueses en Resort <sup>7</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">117.391</span><span class="kpi-label">Muestra filtrada <sup>14</sup></span></div>`;
+                break;
+            case 4:
+                content = `
+                    <div class="kpi-box"><span class="kpi-value city-val">106,89€</span><span class="kpi-label">Media Lisboa <sup>15</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value resort-val">96,77€</span><span class="kpi-label">Media Algarve <sup>16</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">10,12€</span><span class="kpi-label">Diferencia <sup>17</sup></span></div>`;
+                break;
+        }
+        drawer.html(content);
+    }
+
+    // ── Pasos ──────────────────────────────────────────────────────────────
+    function step1() {
+        updateDrawer(1); clearCanvas();
+        mapLayer.transition().duration(800).attr("opacity", 1);
+        simulation
+            .force("x", d3.forceX(d => d.hotel === 'City' ? lisbonPos[0] : algarvePos[0]).strength(0.3))
+            .force("y", d3.forceY(d => d.hotel === 'City' ? lisbonPos[1] : algarvePos[1]).strength(0.3))
+            .alpha(1).restart();
+        nodes.style("display", null)
+            .transition().duration(500).attr("opacity", 1).attr("r", 4);
+    }
+
+    function step2() {
+        updateDrawer(2); clearCanvas();
+        mapLayer.transition().duration(800).attr("opacity", 1);
+        nodesLayer.selectAll(".fragment").remove();
+
+        nodes.filter(d => !d.isOutlier)
+            .transition().duration(500).attr("opacity", 0.8).attr("r", 4);
+
+        nodes.filter(d => d.isOutlier).each(function(d, i) {
+            const node = d3.select(this);
+            const currentColor = node.attr("fill");
+            node.transition()
+                .delay(i * 150 + Math.random() * 100)
+                .duration(600).ease(d3.easeBackIn)
+                .attr("r", 15).attr("opacity", 1)
+                .on("end", function() {
+                    createParticles(d.x, d.y, currentColor);
+                    d3.select(this).attr("r", 0).attr("opacity", 0).style("display", "none");
+                });
+        });
+        simulation.alpha(0.2).restart();
+    }
+
+    function step3() {
+        updateDrawer(3); clearCanvas();
+        mapLayer.transition().duration(800).attr("opacity", 0.1);
+        simulation
+            .force("x", d3.forceX(d => d.resident === 'PRT' ? width * 0.25 : width * 0.75).strength(0.4))
+            .force("y", d3.forceY(height / 2).strength(0.2))
+            .alpha(1).restart();
+        nodes.transition().duration(500).attr("opacity", d => d.isOutlier ? 0 : 0.8);
+        labelsLayer.append("text").attr("x", width * 0.25).attr("y", 80).attr("text-anchor", "middle").attr("class", "axis-label").text("Portugueses");
+        labelsLayer.append("text").attr("x", width * 0.75).attr("y", 80).attr("text-anchor", "middle").attr("class", "axis-label").text("Extranjeros");
+    }
+
+    function step3_5() {
+        updateDrawer(3); clearCanvas();
+        mapLayer.transition().duration(800).attr("opacity", 0.1);
+        simulation
+            .force("x", d3.forceX(d => d.resident === 'PRT' ? width * 0.25 : width * 0.75).strength(0.4))
+            .force("y", d3.forceY(height / 2).strength(0.2))
+            .alpha(1).restart();
+        nodes.transition().duration(500)
+            .attr("opacity", d => d.isOutlier ? 0 : (d.resident === 'PRT' ? 1 : 0.2));
+        labelsLayer.append("text").attr("x", width * 0.25).attr("y", 80).attr("text-anchor", "middle").attr("class", "axis-label").text("Portugueses");
+        labelsLayer.append("text").attr("x", width * 0.75).attr("y", 80).attr("text-anchor", "middle").attr("class", "axis-label").text("Extranjeros");
+        labelsLayer.append("text")
+            .attr("x", width / 2).attr("y", height - 40)
+            .attr("text-anchor", "middle").attr("class", "axis-label")
+            .style("font-size", "18px").style("fill", "var(--color-city)")
+            .text("¿Es Lisboa más barata?");
+    }
+
+    function step4() {
+        updateDrawer(4); clearCanvas();
+        mapLayer.transition().duration(800).attr("opacity", 0);
+        simulation.stop();
+
+        const yScale = d3.scaleLinear().domain([0, 250]).range([height - 60, 80]);
+        labelsLayer.append("g").attr("transform", `translate(80, 0)`)
+            .attr("class", "axis-style")
+            .call(d3.axisLeft(yScale).ticks(5).tickFormat(d => d + "€"));
+
+        ['City', 'Resort'].forEach((type, i) => {
+            const groupData = data.filter(d => d.hotel === type && !d.isOutlier).map(d => d.adr).sort(d3.ascending);
+            const q1 = d3.quantile(groupData, 0.25), median = d3.quantile(groupData, 0.5), q3 = d3.quantile(groupData, 0.75);
+            const min = d3.min(groupData), max = d3.max(groupData);
+            const xPos = width * (i === 0 ? 0.4 : 0.7);
+
+            const g = labelsLayer.append("g").style("opacity", 0);
+            g.append("line").attr("x1", xPos).attr("x2", xPos).attr("y1", yScale(min)).attr("y2", yScale(max)).attr("stroke", "#ccc");
+            g.append("rect").attr("x", xPos - 20).attr("y", yScale(q3))
+                .attr("height", yScale(q1) - yScale(q3)).attr("width", 40)
+                .attr("fill", "#fff").attr("stroke", color(type)).attr("stroke-width", 2).attr("fill-opacity", 0.5);
+            g.append("line").attr("x1", xPos - 20).attr("x2", xPos + 20)
+                .attr("y1", yScale(median)).attr("y2", yScale(median))
+                .attr("stroke", color(type)).attr("stroke-width", 3);
+            g.transition().delay(500).duration(800).style("opacity", 1);
+        });
+
+        nodes.style("display", d => d.isOutlier ? "none" : "block")
+            .transition().duration(1200)
+            .attr("opacity", 0.4).attr("r", 3)
+            .attr("cx", d => (d.hotel === 'City' ? width * 0.4 : width * 0.7) + (Math.random() - 0.5) * 80)
+            .attr("cy", d => yScale(d.adr));
+    }
+
+    function step5() {
+        clearCanvas(); updateDrawer(5);
+        d3.select("#scrolly").classed("centered-view", true);
+        d3.select("#conclusion-panel").classed("visible", true);
+        d3.select("#main-legend").style("opacity", 0);
+        nodes.transition().duration(800).attr("opacity", 0);
+    }
+
+    function step6() {
+        clearCanvas(); updateDrawer(6);
+        d3.select("#scrolly").classed("centered-view", true);
+        d3.select("#final-panel").classed("visible", true);
+        d3.select("#main-legend").style("opacity", 0);
+        nodes.transition().duration(800).attr("opacity", 0);
+    }
+
+    function step7() {
+        clearCanvas(); updateDrawer(7);
+        d3.select("#scrolly").classed("centered-view", true);
+        d3.select("#references-panel").classed("visible", true);
+        d3.select("#main-legend").style("opacity", 0);
+        nodes.transition().duration(800).attr("opacity", 0);
+    }
+
+    // ── IntersectionObserver ──────────────────────────────────────────────
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const step = entry.target.getAttribute('data-step');
+                d3.selectAll('.step').classed('active', false);
+                d3.select(entry.target).classed('active', true);
+                if (step == "1")   step1();
+                if (step == "2")   { step2(); drawCleaningCharts(); }
+                if (step == "3")   { step3(); drawWaffle(); }
+                if (step == "3.5") step3_5();
+                if (step == "4")   step4();
+                if (step == "5")   step5();
+                if (step == "6")   step6();
+                if (step == "7")   step7();
+            }
+        });
+    }, { threshold: 0.7 });
+
+    // ── Waffle Chart ──────────────────────────────────────────────────────
+    function drawWaffle() {
+        const container = d3.select("#waffle-chart");
+        if (container.selectAll("*").size() > 0) return;
+        d3.range(100).forEach(i => {
+            container.append("div")
+                .attr("class", "waffle-dot")
+                .style("background-color", i < 64 ? "var(--color-city)" : "var(--color-resort)")
+                .style("opacity", 0)
+                .transition().delay(i * 10).duration(500).style("opacity", 1);
+        });
+    }
+
+    // ── Mini-histogramas limpieza ─────────────────────────────────────────
+    function drawCleaningCharts() {
+        const categories = ["1", "2", "3", "4", "55"];
+        const dataBefore = [1, 2, 3, 4, 55];
+        const dataAfter  = [1, 2, 3, 4, 0];
+
+        const draw = (id, vals, colorClass) => {
+            const w = 110, h = 60;
+            const s = d3.select(id).append("svg").attr("width", w).attr("height", h);
+            s.append("line").attr("x1", 5).attr("y1", 45).attr("x2", w - 5).attr("y2", 45)
+                .attr("stroke", "#dfe4ea").attr("stroke-width", 1);
+            s.selectAll("rect").data(vals).enter().append("rect")
+                .attr("x", (d, i) => 10 + i * 19)
+                .attr("y", d => 45 - (d === 0 ? 0 : (d === 55 ? 35 : Math.sqrt(d) * 8)))
+                .attr("width", 14)
+                .attr("height", d => d === 0 ? 0 : (d === 55 ? 35 : Math.sqrt(d) * 8))
+                .attr("class", colorClass).attr("rx", 2);
+            s.selectAll(".axis-txt").data(categories).enter().append("text")
+                .attr("x", (d, i) => 10 + i * 19 + 7).attr("y", 56)
+                .attr("text-anchor", "middle")
+                .style("font-size", "8px").style("fill", "#a4b0be")
+                .style("font-weight", d => d === "55" ? "700" : "400")
+                .text(d => d);
+        };
+
+        if (d3.select("#chart-before svg").empty()) draw("#chart-before", dataBefore, "bar-before");
+        if (d3.select("#chart-after svg").empty())  draw("#chart-after",  dataAfter,  "bar-after");
+    }
+
+    document.querySelectorAll('.step').forEach(s => observer.observe(s));
+
+    // ── Barra de progreso ─────────────────────────────────────────────────
+    const steps = Array.from(document.querySelectorAll('.step'));
+    const totalSteps = steps.length;
+    const progressWrap = document.getElementById('progress-bar-wrap');
+    const progressFill = document.getElementById('progress-bar-fill');
+
+    const progressObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const idx = steps.indexOf(entry.target);
+                // Mostrar la barra desde el primer paso
+                progressWrap.classList.add('visible');
+                // Calcular porcentaje: paso 0 → mínimo visible (14%), último → 100%
+                const pct = Math.round(((idx + 1) / totalSteps) * 100);
+                progressFill.style.width = pct + '%';
+            }
+        });
+    }, { threshold: 0.7 });
+
+    steps.forEach(s => progressObserver.observe(s));
+</script>
+</body>
+</html>
