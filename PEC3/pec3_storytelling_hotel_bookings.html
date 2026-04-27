@@ -12,7 +12,7 @@
             --color-resort: #264653;
             --text-main: #2d3436;
             --bg-page: #f0f2f5;
-            /* Altura del cajón de KPIs — cámbiala aquí si quieres ajustar */
+            /* Altura del cajón de KPIs*/
             --drawer-h: 90px;
         }
 
@@ -44,7 +44,7 @@
             line-height: 1.6;
         }
 
-        /* ── Scrollytelling layout ── */
+        /* layout */
         #scrolly {
             display: flex;
             justify-content: space-between;
@@ -54,15 +54,13 @@
             padding: 0 20px;
         }
 
-        /* ── Figura sticky (panel de visualización) ── */
+        /*panel de visualización*/
         figure {
             position: -webkit-sticky;
             position: sticky;
             top: 5vh;
-            /* FIX: Usamos calc para que el panel nunca supere la pantalla visible */
             width: 62%;
             height: 90vh;
-            /* FIX: altura mínima para laptops pequeñas y máxima para no ser enorme */
             min-height: 480px;
             max-height: 780px;
             margin: 0;
@@ -121,7 +119,7 @@
             margin-top: 15px;
         }
 
-        /* ── Leyenda ── */
+        /* Leyenda */
         .axis-label { font-size: 12px; font-weight: 700; fill: #b2bec3; text-transform: uppercase; letter-spacing: 1px; }
 
         .legend {
@@ -143,9 +141,7 @@
         .legend-item { display: flex; align-items: center; }
         .legend-color { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
 
-        /* ── Cajón de KPIs ── */
-        /* FIX: El cajón ya NO es absolute dentro del canvas SVG.
-           Vive FUERA de #viz, al fondo de <figure>, con altura fija */
+        /* Cajón de KPIs */
         .data-drawer {
             flex-shrink: 0;
             height: var(--drawer-h);
@@ -188,7 +184,7 @@
         .resort-val  { color: var(--color-resort) !important; }
         .neutral-val { color: #2d3436; }
 
-        /* ── Paneles superpuestos (conclusión, datos, referencias) ── */
+        /*conclusión, datos, referencias*/
         #final-panel, #references-panel, #conclusion-panel {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -255,7 +251,7 @@
         }
         .waffle-dot { width: 15px; height: 15px; border-radius: 2px; }
 
-        /* ── Barra de progreso ── */
+        /* Barra de progreso */
         #progress-bar-wrap {
             position: fixed;
             bottom: 0;
@@ -290,7 +286,6 @@
     </header>
 
     <main id="scrolly">
-        <!-- FIX: figure ahora tiene flex-direction:column; #viz crece, .data-drawer queda fijo abajo -->
         <figure>
             <div id="viz">
                 <div class="legend" id="main-legend">
@@ -338,8 +333,6 @@
                     <p>El estudio revela una paradoja curiosa: el turista local sacrifica el ahorro económico del resort por la conveniencia de la capital, consolidando a <strong>Lisboa</strong> como el motor premium del turismo portugués.</p>
                 </div>
             </div>
-
-            <!-- FIX: el cajón está FUERA de #viz, dentro de <figure> como elemento flex hermano -->
             <div class="data-drawer" id="data-drawer"></div>
         </figure>
 
@@ -386,8 +379,7 @@
 </div>
 
 <script>
-    // ── Dimensiones del SVG responsivas al contenedor ──────────────────────
-    // En vez de valores fijos (650×700), leemos el espacio disponible al cargar
+    // En vez de valores fijos (650×700), leo el espacio disponible al cargar
     // y cuando cambia el tamaño de ventana.
 
     const vizEl = document.getElementById("viz");
@@ -410,7 +402,6 @@
         .style("width", "100%")
         .style("height", "100%");
 
-    // FIX: la proyección usa las dimensiones reales, no 650/700 fijas
     const projection = d3.geoMercator()
         .center([-8.2, 39.5])
         .scale(4500)
@@ -423,7 +414,7 @@
     const labelsLayer = svg.append("g").attr("id", "labels-layer");
     const nodesLayer  = svg.append("g");
 
-    // Dibujar Portugal
+    // Dibujo Portugal
     d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson").then(data => {
         const portugal = data.features.filter(d => d.properties.name === "Portugal");
         mapLayer.selectAll("path")
@@ -435,7 +426,7 @@
             .attr("d", d3.geoPath().projection(projection));
     });
 
-    // ── Datos simulados ────────────────────────────────────────────────────
+    // Datos inferidos del pdf del análisis
     const data = d3.range(450).map(i => {
         const isCity = i < 300;
         const baseAdr = isCity ? 106.89 : 96.77;
@@ -466,7 +457,7 @@
         .force("collision", d3.forceCollide().radius(4.5))
         .on("tick", () => nodes.attr("cx", d => d.x).attr("cy", d => d.y));
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+
     function clearLabels() { labelsLayer.selectAll("*").remove(); }
 
     function createParticles(x, y, col) {
@@ -540,7 +531,7 @@
         drawer.html(content);
     }
 
-    // ── Pasos ──────────────────────────────────────────────────────────────
+
     function step1() {
         updateDrawer(1); clearCanvas();
         mapLayer.transition().duration(800).attr("opacity", 1);
@@ -663,7 +654,7 @@
         nodes.transition().duration(800).attr("opacity", 0);
     }
 
-    // ── IntersectionObserver ──────────────────────────────────────────────
+    // IntersectionObserver 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -682,7 +673,7 @@
         });
     }, { threshold: 0.7 });
 
-    // ── Waffle Chart ──────────────────────────────────────────────────────
+    // Waffle Chart 
     function drawWaffle() {
         const container = d3.select("#waffle-chart");
         if (container.selectAll("*").size() > 0) return;
@@ -695,7 +686,7 @@
         });
     }
 
-    // ── Mini-histogramas limpieza ─────────────────────────────────────────
+    // Mini-histogramas limpieza
     function drawCleaningCharts() {
         const categories = ["1", "2", "3", "4", "55"];
         const dataBefore = [1, 2, 3, 4, 55];
@@ -726,7 +717,7 @@
 
     document.querySelectorAll('.step').forEach(s => observer.observe(s));
 
-    // ── Barra de progreso ─────────────────────────────────────────────────
+    // Barra de progreso 
     const steps = Array.from(document.querySelectorAll('.step'));
     const totalSteps = steps.length;
     const progressWrap = document.getElementById('progress-bar-wrap');
