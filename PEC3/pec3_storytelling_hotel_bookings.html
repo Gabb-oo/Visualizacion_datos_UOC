@@ -307,7 +307,7 @@
                 <div id="references-panel">
                     <h2>Referencias</h2>
                     <div class="ref-list">
-                        <p><strong>1.</strong> Página 2 (Resultado de dim(x) que confirma las 119.390 filas).</p>
+                        <!-- <p><strong>1.</strong> Página 2 (Resultado de dim(x) que confirma las 119.390 filas).</p>
                         <p><strong>2.</strong> Página 18 (Párrafo explicativo sobre la distribución de reservas por hotel).</p>
                         <p><strong>3.</strong> Página 2 (Resumen inicial de la variable hotel con 79.330 y 40.060 reservas).</p>
                         <p><strong>4.</strong> Página 5 (Confirmación visual en tabla de la reserva con 55 adultos).</p>
@@ -324,7 +324,17 @@
                         <p><strong>15.</strong> Página 21 (Media calculada para Lisboa: 106,89€).</p>
                         <p><strong>16.</strong> Página 21 (Media calculada para el Resort: 96,77€).</p>
                         <p><strong>17.</strong> Página 21 (Diferencia media reportada de 10,12€).</p>
-                        <p><strong>18.</strong> Página 17 (Valor máximo de ADR tras la limpieza: 510,00€).</p>
+                        <p><strong>18.</strong> Página 17 (Valor máximo de ADR tras la limpieza: 510,00€).</p> -->
+                        <!-- Reduzco las referencias porque algunas me han salido duplicadas o se pueden encontrar en el mismo sitio del documento -->
+                        <p><strong>1.</strong> Página 2: Resultado de dim(x) que confirma las 119.390 filas. Resumen inicial de la variable hotel con 79.330 y 40.060 reservas.</p>
+                        <p><strong>2.</strong> Página 4: Identificación de la anomalía de 55 adultos.</p>
+                        <p><strong>3.</strong> Página 5: Confirmación visual en tabla de la reserva con 55 adultos. Instrucción de filtrado para eliminar reservas con 10 o más adultos.</p>
+                        <p><strong>4.</strong> Página 8: Filtro para eliminar tarifas ADR negativas y valores superiores a 1000€.</p>
+                        <p><strong>5.</strong> Página 9: Fórmula matemática del ADR (TotalRoomsRevenue / RoomsSold). Definición conceptual del ADR.</p>
+                        <p><strong>6.</strong> Página 17: Nota técnica sobre la presencia de 4 valores NA en ADR. Resumen estadístico que muestra los 4 NA. Valor máximo de ADR tras la limpieza: 510,00€.</p>
+                        <p><strong>7.</strong> Página 18: Párrafo explicativo sobre la distribución de reservas por hotel.</p>
+                        <p><strong>8.</strong> Página 21: Resultado del test estadístico con n_obs = 117.391. Media calculada para Lisboa: 106,89€. Media calculada para el Resort: 96,77€. Diferencia media reportada: 10,12€.</p>
+                        <p><strong>9.</strong> Página 23: Porcentaje del 63,7% para portugueses. Porcentaje del 36,3% para portugueses.</p>
                     </div>
                 </div>
 
@@ -339,12 +349,12 @@
         <article>
             <div class="step active" data-step="1">
                 <h2>1. El Océano de Datos</h2>
-                <p>En el mapa vemos la distribución inicial: <strong>79.330</strong> reservas en la vibrante Lisboa frente a <strong>40.060</strong> en el relax del Algarve<sup>3</sup>.</p>
+                <p>En el mapa vemos la distribución inicial: <strong>79.330</strong> reservas en la vibrante Lisboa frente a <strong>40.060</strong> en el relax del Algarve<sup>1</sup>.</p>
             </div>
 
             <div class="step" data-step="2">
                 <h2>2. Depuración del Ruido</h2>
-                <p>La limpieza es clave. Eliminamos anomalías como reservas de <strong>55 adultos</strong> o precios negativos<sup>4, 5</sup>.</p>
+                <p>La limpieza es clave. Eliminamos anomalías como reservas de <strong>55 adultos</strong> o precios negativos<sup>3, 4</sup>.</p>
                 <div class="cleaning-comparison">
                     <div class="mini-chart" id="chart-before"><span>ORIGINAL</span></div>
                     <div class="mini-chart" id="chart-after"><span>FILTRADO</span></div>
@@ -353,7 +363,7 @@
 
             <div class="step" data-step="3">
                 <h2>3. Preferencia Nacional</h2>
-                <p>Sorpresa: los portugueses son animales urbanos. El <strong>63,7%</strong> elige su capital<sup>6, 7</sup>.</p>
+                <p>Sorpresa: los portugueses son animales urbanos. El <strong>63,7%</strong> elige su capital.</p>
                 <div class="waffle-container" id="waffle-chart"></div>
             </div>
 
@@ -365,7 +375,7 @@
             <div class="step" data-step="4">
                 <h2>4. El Precio del Asfalto</h2>
                 <p>A pesar del aire vacacional del Algarve, Lisboa es más cara. La tarifa media (ADR) alcanza los <strong>106,89€</strong>.</p>
-                <div class="formula">ADR = Ingresos / Hab. Vendidas <sup>8, 9</sup></div>
+                <div class="formula">ADR = Ingresos / Hab. Vendidas <sup>5</sup></div>
             </div>
 
             <div class="step" data-step="5"></div>
@@ -506,26 +516,26 @@
             case 1:
                 content = `
                     <div class="kpi-box"><span class="kpi-value neutral-val">119.390</span><span class="kpi-label">Reservas Totales <sup>1</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value city-val">66,4%</span><span class="kpi-label">Cuota Lisboa <sup>2</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value resort-val">33,6%</span><span class="kpi-label">Cuota Algarve <sup>2</sup></span></div>`;
+                    <div class="kpi-box"><span class="kpi-value city-val">66,4%</span><span class="kpi-label">Cuota Lisboa <sup>7</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value resort-val">33,6%</span><span class="kpi-label">Cuota Algarve <sup>7</sup></span></div>`;
                 break;
             case 2:
                 content = `
-                    <div class="kpi-box"><span class="kpi-value neutral-val">55</span><span class="kpi-label">Máximo Outlier (Adultos) <sup>10, 4</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value neutral-val">&gt;10</span><span class="kpi-label">Umbral de eliminación <sup>11</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value neutral-val">4</span><span class="kpi-label">NAs detectados en ADR <sup>12, 13</sup></span></div>`;
+                    <div class="kpi-box"><span class="kpi-value neutral-val">55</span><span class="kpi-label">Máximo Outlier (Adultos) <sup>2, 3</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">&gt;10</span><span class="kpi-label">Umbral de eliminación <sup>3</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">4</span><span class="kpi-label">NAs detectados en ADR <sup>6</sup></span></div>`;
                 break;
             case 3:
                 content = `
-                    <div class="kpi-box"><span class="kpi-value city-val">63,7%</span><span class="kpi-label">Portugueses en Ciudad <sup>6</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value resort-val">36,3%</span><span class="kpi-label">Portugueses en Resort <sup>7</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value neutral-val">117.391</span><span class="kpi-label">Muestra filtrada <sup>14</sup></span></div>`;
+                    <div class="kpi-box"><span class="kpi-value city-val">63,7%</span><span class="kpi-label">Portugueses en Ciudad <sup>9</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value resort-val">36,3%</span><span class="kpi-label">Portugueses en Resort <sup>9</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">117.391</span><span class="kpi-label">Muestra filtrada <sup>8</sup></span></div>`;
                 break;
             case 4:
                 content = `
-                    <div class="kpi-box"><span class="kpi-value city-val">106,89€</span><span class="kpi-label">Media Lisboa <sup>15</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value resort-val">96,77€</span><span class="kpi-label">Media Algarve <sup>16</sup></span></div>
-                    <div class="kpi-box"><span class="kpi-value neutral-val">10,12€</span><span class="kpi-label">Diferencia <sup>17</sup></span></div>`;
+                    <div class="kpi-box"><span class="kpi-value city-val">106,89€</span><span class="kpi-label">Media Lisboa <sup>8</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value resort-val">96,77€</span><span class="kpi-label">Media Algarve <sup>8</sup></span></div>
+                    <div class="kpi-box"><span class="kpi-value neutral-val">10,12€</span><span class="kpi-label">Diferencia <sup>8</sup></span></div>`;
                 break;
         }
         drawer.html(content);
