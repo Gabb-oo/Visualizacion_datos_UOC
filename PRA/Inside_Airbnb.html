@@ -324,10 +324,10 @@
         let hasZoomedIn = false;
 
         Promise.all([
-            d3.json("../datad3/madrid_districts_data.geojson"),
-            d3.csv("../datad3/listings_clean.csv"),
+            d3.json("../PRA/datad3/madrid_districts_data.geojson"),
+            d3.csv("../PRA/datad3/listings_clean.csv"),
             d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/spain-communities.geojson"),
-            d3.json("../datad3/seasonality_trends.json")
+            d3.json("../PRA/datad3/seasonality_trends.json")
         ]).then(([geojson, listings, ccaaData, temporal]) => {
             geoData = geojson;
             listingsData = listings;
