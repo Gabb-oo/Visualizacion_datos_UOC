@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inside Airbnb: El Impacto Turístico en Madrid</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --rosa: #FF385C;
+            --azul: #007A87;
+            --blanco: #FFFFFF;
+            --gris-oscuro: #222222;
+            --gris-claro: #ebebeb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f8f9fa;
+            color: var(--gris-oscuro);
+        }
+
+        #progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            width: 0%;
+            background-color: var(--rosa);
+            z-index: 1000;
+            transition: width 0.1s ease-out;
+        }
+
+        header {
+            padding: 50px 20px;
+            text-align: center;
+            background: var(--gris-oscuro);
+            color: var(--blanco);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            margin: 10px 0 0 0;
+            font-size: 1.15rem;
+            opacity: 0.85;
+            font-weight: 300;
+        }
+
+        .header-metadata {
+            margin-top: 20px !important;
+            font-size: 0.85rem !important;
+            opacity: 0.6 !important;
+            letter-spacing: 0.5px;
+            font-weight: 400;
+        }
+
+        .scrolly-container {
+            display: flex;
+            position: relative;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        #narrative {
+            flex: 1;
+            max-width: 450px;
+            z-index: 10;
+        }
+
+        .step {
+            margin-bottom: 75vh;
+            min-height: 220px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+            box-sizing: border-box;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0.4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+
+        .step.active {
+            opacity: 1;
+            border-left: 5px solid var(--rosa);
+            transform: scale(1.01);
+        }
+
+        .step:last-child {
+            margin-bottom: 65vh;
+        }
+
+        #visualization {
+            flex: 2;
+            position: -webkit-sticky;
+            position: sticky;
+            top: 20px;
+            height: 85vh;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .barrio {
+            cursor: pointer;
+        }
+
+        .axis path, .axis line {
+            stroke: #bbb;
+        }
+        .axis text {
+            font-size: 0.85rem;
+            fill: #444;
+        }
+        .grid line {
+            stroke: var(--gris-claro);
+            stroke-opacity: 0.7;
+            shape-rendering: crispEdges;
+        }
+        .grid path {
+            stroke-width: 0;
+        }
+        .line-price {
+            fill: none;
+            stroke: var(--azul);
+            stroke-width: 3px;
+        }
+        .line-occupancy {
+            fill: none;
+            stroke: var(--rosa);
+            stroke-width: 3px;
+        }
+        .focus-line {
+            stroke: #666;
+            stroke-width: 1px;
+            stroke-dasharray: 3,3;
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(34, 34, 34, 0.95);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            line-height: 1.4;
+        }
+        .credits-section {
+            max-width: 1400px;
+            margin: 0 auto 60px auto;
+            padding: 40px 40px 40px 40px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-top: 4px solid var(--rosa);
+        }
+
+        .credits-section h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: var(--gris-oscuro);
+            letter-spacing: 0.3px;
+        }
+
+        .credits-section p {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.7;
+            margin: 8px 0;
+        }
+
+        .credits-section a {
+            color: var(--rosa);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .credits-section a:hover {
+            text-decoration: underline;
+        }
+
+        .credits-files {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .credits-files span {
+            background: #f8f9fa;
+            border: 1px solid var(--gris-claro);
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="progress-bar"></div>
+
+    <header>
+        <h1>Análisis del Impacto de Airbnb en Madrid</h1>
+        <p>Explorando la distribución y estacionalidad de más de 25.000 alojamientos turísticos.</p>
+        <p class="header-metadata">
+            <strong>Gabriel Nicolás Rivadeneira Gómez</strong> | Visualización de datos. Práctica II | Máster en ciencia de datos. | UOC
+        </p>
+    </header>
+
+    <main class="scrolly-container">
+
+        <section id="narrative">
+            <div class="step active" id="step1" data-scene="0">
+                <h2>Delimitación Territorial y Alcance del Proyecto</h2>
+                <p>Este análisis se centra de manera exclusiva en el <strong>Municipio de Madrid</strong>, acotando el estudio al núcleo urbano principal de la región.</p>
+                <p>Al contrastar el marco de datos con la silueta completa de la Comunidad Autónoma, se evidencia desde el primer vistazo el alcance exacto de la investigación. Este mapa inicial sirve como contexto macro, mostrando visualmente cómo la actividad registrada se concentra con absoluta intensidad en el corazón de la capital.</p>
+            </div>
+            <div class="step" id="step2" data-scene="1">
+                <h2>Foco Urbano: Precios por Barrio</h2>
+                <p>Al avanzar en la narrativa, el mapa realiza una transición geométrica fluida para enfocar exclusivamente el municipio de Madrid, el núcleo central de este análisis regional.</p>
+                <p>Con los 127 barrios ocupando el lienzo, se examina el coste medio por noche. Las tarifas más elevadas se concentran nítidamente en el eje de la almendra central tradicional y en distritos como Salamanca o Chamberí, permitiendo evaluar la distribución y el impacto económico en el tejido urbano directo.</p>
+            </div>
+
+            <div class="step" id="step3" data-scene="2">
+                <h2>El Pulso Temporal: Variación Anual</h2>
+                <p>Este bloque desplaza temporalmente la dimensión espacial para profundizar en el factor tiempo, organizando los registros cronológicamente de enero a diciembre para proporcionar una lectura analítica de la estacionalidad.</p>
+                <p>El gráfico sintetiza las tendencias del calendario. La curva <strong style="color:var(--azul);">azul</strong> detalla el precio promedio por noche, mientras que la curva <strong style="color:var(--rosa);">rosa</strong> representa la tasa de ocupación estimada. La interfaz permite explorar los valores diarios al interactuar con el lienzo, evidenciando la correlación entre los picos de tarifas y el volumen de reservas durante la primavera y los periodos vacacionales de otoño-invierno.</p>
+            </div>
+
+            <div class="step" id="step4" data-scene="3">
+                <h2>Intensidad Real de la Actividad</h2>
+                <p>Retornando a la cartografía urbana, este último bloque mide la intensidad real acumulada de la actividad turística a través del volumen histórico de reseñas registradas.</p>
+                <p>Esta métrica revela el flujo efectivo de huéspedes en el territorio: el centro histórico (abarcando barrios como Sol, Embajadores y Cortes) no solo concentra las tarifas más elevadas, sino que soporta una presión de rotación continua, consolidándose como el área crítica para el análisis del impacto habitacional en la capital.</p>
+            </div>
+
+        </section>
+
+        <section id="visualization">
+            <div id="chart-area"></div>
+        </section>
+
+    </main>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        const width = 850;
+        const height = 640;
+
+        const svg = d3.select("#chart-area")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const defs = svg.append("defs");
+
+        const filter = defs.append("filter")
+            .attr("id", "map-shadow")
+            .attr("width", "130%").attr("height", "130%");
+        filter.append("feDropShadow")
+            .attr("dx", "1").attr("dy", "3").attr("stdDeviation", "4")
+            .attr("flood-color", "#000000").attr("flood-opacity", "0.12");
+
+        const legendGradient = defs.append("linearGradient")
+            .attr("id", "legend-gradient")
+            .attr("x1", "0%").attr("y1", "0%")
+            .attr("x2", "100%").attr("y2", "0%");
+        const numStops = 10;
+        for (let i = 0; i <= numStops; i++) {
+            legendGradient.append("stop")
+                .attr("offset", `${(i / numStops) * 100}%`)
+                .attr("stop-color", d3.interpolateYlOrRd(i / numStops));
+        }
+
+        let geoData, listingsData, communityOutline, seasonalityData;
+        let mapGroup, provincialPath, neighborhoodPaths, lineChartGroup, legendGroup;
+
+        const projection = d3.geoMercator();
+        const pathGenerator = d3.geoPath().projection(projection);
+        const colorScale = d3.scaleSequentialSqrt(d3.interpolateYlOrRd);
+        const tooltip = d3.select("#tooltip");
+
+        const esLocale = d3.timeFormatLocale({
+            dateTime: "%A, %e de %B de %Y, %X", date: "%d/%m/%Y", time: "%H:%M:%S",
+            periods: ["AM", "PM"],
+            days: ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+            shortDays: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+            months: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+            shortMonths: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        });
+
+        let maxValues = {};
+        let activePropertyGlobal = 0;
+        let currentSceneGlobal = 0;
+        let hasZoomedIn = false;
+
+        Promise.all([
+            d3.json("../datad3/madrid_districts_data.geojson"),
+            d3.csv("../datad3/listings_clean.csv"),
+            d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/spain-communities.geojson"),
+            d3.json("../datad3/seasonality_trends.json")
+        ]).then(([geojson, listings, ccaaData, temporal]) => {
+            geoData = geojson;
+            listingsData = listings;
+            seasonalityData = temporal;
+
+            communityOutline = ccaaData.features.find(d =>
+                d.properties.name && d.properties.name.includes("Madrid")
+            );
+
+            const rawParse = d3.timeParse("%Y-%m-%d");
+            seasonalityData.forEach(d => {
+                let dObj = rawParse(d.date);
+                d.virtualDate = new Date(2026, dObj.getMonth(), dObj.getDate());
+                d.avg_price = +d.avg_price;
+                d.occupancy_rate = +d.occupancy_rate;
+            });
+            seasonalityData.sort((a, b) => a.virtualDate - b.virtualDate);
+
+            maxValues["total_listings"] = d3.max(geoData.features, d => d.properties.total_listings || 0);
+            maxValues["avg_price"]      = d3.max(geoData.features, d => d.properties.avg_price || 0);
+            maxValues["total_reviews"]  = d3.max(geoData.features, d => d.properties.total_reviews || 0);
+
+            //  Capa del mapa 
+            projection.fitSize([width, height], communityOutline || geoData);
+            mapGroup = svg.append("g").attr("filter", "url(#map-shadow)");
+
+            if (communityOutline) {
+                provincialPath = mapGroup.append("path")
+                    .datum(communityOutline)
+                    .attr("d", pathGenerator)
+                    .attr("fill", "#f1f3f5")
+                    .attr("stroke", "#6c757d")
+                    .attr("stroke-width", "1.2px")
+                    .style("stroke-dasharray", "4,4");
+            }
+
+            // para que el zoom entre ellas sea puramente geométrico.
+            colorScale.domain([0, maxValues["avg_price"]]);
+
+            neighborhoodPaths = mapGroup.append("g")
+                .selectAll(".barrio")
+                .data(geoData.features)
+                .join("path")
+                .attr("class", "barrio")
+                .attr("d", pathGenerator)
+                .attr("fill", d => {
+                    const val = d.properties.avg_price;
+                    return val && val > 0 ? colorScale(val) : "#e2e6ea";
+                })
+                .style("stroke", "#495057")
+                .style("stroke-width", "0.4px")
+                .on("mouseover", handleMouseOver)
+                .on("mousemove", handleMouseMove)
+                .on("mouseleave", handleMouseLeave);
+
+            //  Leyenda 
+            // legendGroup = svg.append("g")
+            //     .attr("class", "map-legend")
+            //     .attr("transform", `translate(30, ${height - 55})`)
+            //     .style("opacity", 1);
+            legendGroup = svg.append("g")
+                .attr("class", "map-legend")
+                .attr("transform", `translate(30, ${height - 55})`)
+                .style("opacity", 0)   //  oculta al inicio
+                .style("display", "none");  //  y fuera del flujo
+            legendGroup.append("rect")
+                .attr("width", 200).attr("height", 12)
+                .attr("fill", "url(#legend-gradient)")
+                .attr("stroke", "#bbb").attr("stroke-width", "0.5px");
+            legendGroup.append("text").attr("class", "legend-title")
+                .attr("x", 0).attr("y", -7)
+                .style("font-size", "0.78rem").style("font-weight", "600").style("fill", "#222");
+            legendGroup.append("text").attr("class", "legend-min")
+                .attr("x", 0).attr("y", 24)
+                .style("font-size", "0.75rem").style("fill", "#555").text("0");
+            legendGroup.append("text").attr("class", "legend-max")
+                .attr("x", 200).attr("y", 24)
+                .style("text-anchor", "end").style("font-size", "0.75rem").style("fill", "#555");
+
+            updateLegend("avg_price", "Análisis Económico: Coste Medio por Noche", true);
+
+            //  Gráfico de líneas 
+            lineChartGroup = svg.append("g")
+                .attr("class", "line-chart-group")
+                .style("opacity", 0)
+                .style("display", "none")
+                .style("pointer-events", "none");
+            buildPremiumLineChart();
+
+            setupScrollTrigger();
+        }).catch(err => {
+            console.error("Error en la carga: ", err);
+        });
+
+        // 
+        function buildPremiumLineChart() {
+            const margin = {top: 70, right: 75, bottom: 130, left: 75};
+            const cWidth  = width  - margin.left - margin.right;
+            const cHeight = height - margin.top  - margin.bottom;
+
+            const g = lineChartGroup.append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+            const x = d3.scaleTime()
+                .domain([new Date(2026, 0, 1), new Date(2026, 11, 31)])
+                .range([0, cWidth]);
+            const yPrice = d3.scaleLinear()
+                .domain([0, d3.max(seasonalityData, d => d.avg_price) * 1.15])
+                .range([cHeight, 0]);
+            const yOccupancy = d3.scaleLinear()
+                .domain([0, 100])
+                .range([cHeight, 0]);
+
+            g.append("g").attr("class", "grid")
+                .call(d3.axisLeft(yPrice).ticks(6).tickSize(-cWidth).tickFormat(""));
+            g.append("g").attr("class", "axis")
+                .attr("transform", `translate(0, ${cHeight})`)
+                .call(d3.axisBottom(x).ticks(12).tickFormat(esLocale.format("%b")));
+            g.append("g").attr("class", "axis")
+                .call(d3.axisLeft(yPrice).ticks(6).tickFormat(d => `${Math.round(d)} €`));
+            g.append("g").attr("class", "axis")
+                .attr("transform", `translate(${cWidth}, 0)`)
+                .call(d3.axisRight(yOccupancy).ticks(6).tickFormat(d => `${d}%`));
+
+            const priceLine = d3.line()
+                .x(d => x(d.virtualDate)).y(d => yPrice(d.avg_price))
+                .curve(d3.curveMonotoneX);
+            const occupancyLine = d3.line()
+                .x(d => x(d.virtualDate)).y(d => yOccupancy(d.occupancy_rate * 100))
+                .curve(d3.curveMonotoneX);
+
+            g.append("path").datum(seasonalityData).attr("class", "line-price").attr("d", priceLine);
+            g.append("path").datum(seasonalityData).attr("class", "line-occupancy").attr("d", occupancyLine);
+
+            const legend = g.append("g").attr("transform", `translate(${cWidth / 2 - 150}, -35)`);
+            legend.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 6).attr("fill", varToString("--azul"));
+            legend.append("text").attr("x", 12).attr("y", 4)
+                .text("Precio Promedio*")
+                .style("font-size", "0.85rem").style("font-weight", "600").style("fill", "#444");
+            legend.append("circle").attr("cx", 195).attr("cy", 0).attr("r", 6).attr("fill", varToString("--rosa"));
+            legend.append("text").attr("x", 207).attr("y", 4)
+                .text("Tasa de Ocupación (%)")
+                .style("font-size", "0.85rem").style("font-weight", "600").style("fill", "#444");
+
+            lineChartGroup.append("foreignObject")
+                .attr("x", margin.left).attr("y", height - 90)
+                .attr("width", cWidth).attr("height", 90)
+                .html(`
+                    <div style="font-family: sans-serif; font-size: 0.76rem; color: #666; line-height: 1.6; font-style: italic;">
+                        <span style="font-style: normal; font-weight: 700; color: #444;">*Nota:</span>
+                        Los precios diarios se estimaron mediante interpolación lineal acotada sobre el precio medio agregado de Madrid:
+                        <span style="display: inline-block; margin: 4px 0; font-style: normal; font-family: 'Georgia', serif; color: #333; white-space: nowrap;">
+                            <b>P&#770;<sub>d</sub></b> = <b>P&#772;<sub>Madrid</sub></b> &middot; (0.85 + ((<b>o<sub>d</sub></b> &minus; <b>o<sub>min</sub></b>) / (<b>o<sub>max</sub></b> &minus; <b>o<sub>min</sub></b>)) &middot; 0.40)
+                        </span>
+                        &mdash; donde <b>P&#772;<sub>Madrid</sub></b> es el precio medio global, <b>o<sub>d</sub></b> la ocupación diaria observada
+                        y [<b>o<sub>min</sub></b>, <b>o<sub>max</sub></b>] el rango observado. El precio oscila entre el 85% y el 125% del precio base
+                        según la demanda relativa del día.
+                    </div>
+                `);
+
+            const focus = g.append("g").style("display", "none");
+            const focusLine = focus.append("line").attr("class", "focus-line").attr("y1", 0).attr("y2", cHeight);
+            const pCircle = focus.append("circle").attr("r", 5)
+                .attr("fill", varToString("--azul")).attr("stroke", "#fff").attr("stroke-width", "1.5px");
+            const oCircle = focus.append("circle").attr("r", 5)
+                .attr("fill", varToString("--rosa")).attr("stroke", "#fff").attr("stroke-width", "1.5px");
+
+            g.append("rect")
+                .attr("width", cWidth).attr("height", cHeight)
+                .style("fill", "none").style("pointer-events", "all")
+                .on("mouseover", () => {
+                    if (currentSceneGlobal === 2) { focus.style("display", null); tooltip.style("opacity", 1); }
+                })
+                .on("mouseout", () => { focus.style("display", "none"); tooltip.style("opacity", 0); })
+                .on("mousemove", function(event) {
+                    if (currentSceneGlobal !== 2) return;
+                    const mouseX = d3.pointer(event)[0];
+                    const xDate  = x.invert(mouseX);
+                    const bisect = d3.bisector(d => d.virtualDate).left;
+                    const idx = bisect(seasonalityData, xDate, 1);
+                    const d0 = seasonalityData[idx - 1];
+                    const d1 = seasonalityData[idx];
+                    if (!d0 || !d1) return;
+                    const d = xDate - d0.virtualDate > d1.virtualDate - xDate ? d1 : d0;
+
+                    focusLine.attr("x1", x(d.virtualDate)).attr("x2", x(d.virtualDate));
+                    pCircle.attr("cx", x(d.virtualDate)).attr("cy", yPrice(d.avg_price));
+                    oCircle.attr("cx", x(d.virtualDate)).attr("cy", yOccupancy(d.occupancy_rate * 100));
+
+                    tooltip.html(`
+                        <strong>Fecha:</strong> ${esLocale.format("%e de %B")(d.virtualDate)}<br/>
+                        <span style='color:#aae3eb'>●</span> <strong>Precio:</strong> ${d.avg_price.toFixed(2)} €<br/>
+                        <span style='color:#ff859c'>●</span> <strong>Ocupación:</strong> ${(d.occupancy_rate * 100).toFixed(1)}%
+                    `)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top",  (event.pageY - 20) + "px");
+                });
+        }
+
+        function varToString(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        }
+
+        function updateLegend(propertyKey, titleText, isCurrency = false) {
+            const maxVal = maxValues[propertyKey];
+            legendGroup.select(".legend-title").text(titleText);
+            legendGroup.select(".legend-max").text(
+                isCurrency
+                    ? `${Math.round(maxVal)} €`
+                    : d3.format(",.0f")(maxVal).replace(",", ".")
+            );
+        }
+
+        // ESCENAS
+ 
+        function manageScenes(sceneIndex) {
+            currentSceneGlobal = sceneIndex;
+            const duration = 1000;
+
+            if (sceneIndex === 0) {
+                lineChartGroup.style("display", "none").style("pointer-events", "none");
+
+                // Ocultar leyenda en escena 0
+                legendGroup.transition().duration(duration / 2).style("opacity", 0)
+                    .on("end", () => legendGroup.style("display", "none"));
+
+                mapGroup.style("display", "inline").style("pointer-events", "all");
+                mapGroup.transition().duration(duration).style("opacity", 1);
+
+                // siempre volver a la vista de la Comunidad, sin condición hasZoomedIn
+                projection.fitSize([width, height], communityOutline || geoData);
+
+                if (provincialPath) {
+                    provincialPath
+                        .style("opacity", 1)  //  forzar desde 0 antes de animar
+                        .transition().duration(duration)
+                        .attr("d", pathGenerator).style("opacity", 1);
+                }
+
+                colorScale.domain([0, maxValues["avg_price"]]);
+
+                neighborhoodPaths.transition().duration(duration)
+                    .attr("d", pathGenerator)
+                    .attr("fill", d => {
+                        const val = d.properties.avg_price;
+                        return val && val > 0 ? colorScale(val) : "#e2e6ea";
+                    })
+                    .style("stroke-width", "0.4px");
+            } else if (sceneIndex === 1) {
+                lineChartGroup.style("display", "none").style("pointer-events", "none");
+
+                mapGroup.style("display", "inline").style("pointer-events", "all");
+
+                // asegurar display antes de animar opacidad
+                legendGroup.style("display", "inline");
+
+                mapGroup.transition().duration(duration).style("opacity", 1);
+                legendGroup.transition().duration(duration).style("opacity", 1);
+
+                projection.fitSize([width, height], geoData);
+                colorScale.domain([0, maxValues["avg_price"]]);
+
+                if (provincialPath) {
+                    provincialPath.transition().duration(duration)
+                        .attr("d", pathGenerator).style("opacity", 0);
+                }
+
+                neighborhoodPaths.transition().duration(duration)
+                    .attr("d", pathGenerator)
+                    .attr("fill", d => {
+                        const val = d.properties.avg_price;
+                        return val && val > 0 ? colorScale(val) : "#e2e6ea";
+                    })
+                    .style("stroke-width", "0.6px");
+
+                updateLegend("avg_price", "Análisis Económico: Coste Medio por Noche", true);
+            } else if (sceneIndex === 2) {
+                // fade-out del mapa antes de mostrar el gráfico
+                legendGroup.transition().duration(duration / 2).style("opacity", 0)
+                    .on("end", () => legendGroup.style("display", "none"));
+
+                mapGroup.transition().duration(duration / 2).style("opacity", 0)
+                    .on("end", () => {
+                        mapGroup.style("display", "none").style("pointer-events", "none");
+                    });
+
+                // Gráfico aparece desde 0 tras un breve retardo
+                lineChartGroup
+                    .style("display", "inline")
+                    .style("opacity", 0)
+                    .style("pointer-events", "all");
+                lineChartGroup.transition().delay(duration / 2).duration(duration).style("opacity", 1);
+
+            } else if (sceneIndex === 3) {
+                // fade-out del gráfico antes de mostrar el mapa de reseñas
+                lineChartGroup.transition().duration(duration / 2).style("opacity", 0)
+                    .on("end", () => {
+                        lineChartGroup.style("display", "none").style("pointer-events", "none");
+
+                        // Preparar proyección y colores antes de hacer fade-in
+                        projection.fitSize([width, height], geoData);
+                        colorScale.domain([0, maxValues["total_reviews"]]);
+
+                        if (provincialPath) {
+                            provincialPath.attr("d", pathGenerator).style("opacity", 0);
+                        }
+
+                        neighborhoodPaths
+                            .attr("d", pathGenerator)
+                            .attr("fill", d => {
+                                const val = d.properties.total_reviews;
+                                return val && val > 0 ? colorScale(val) : "#e2e6ea";
+                            })
+                            .style("stroke-width", "0.6px");
+
+                        // Mostrar mapa desde opacidad 0 garantizada  fade-in limpio
+                        mapGroup
+                            .style("display", "inline")
+                            .style("opacity", 0)
+                            .style("pointer-events", "all");
+                        legendGroup
+                            .style("display", "inline")
+                            .style("opacity", 0);
+
+                        updateLegend("total_reviews", "Presión Activa: Reseñas Totales Acumuladas");
+
+                        mapGroup.transition().duration(duration).style("opacity", 1);
+                        legendGroup.transition().duration(duration).style("opacity", 1);
+                    });
+            }
+        }
+
+        // 
+        function handleMouseOver(event, d) {
+            if (currentSceneGlobal === 2) return;
+            tooltip.style("opacity", 1).html(`
+                <strong>Barrio:</strong> ${d.properties.neighbourhood || "Desconocido"}<br/>
+                <strong>Alojamientos:</strong> ${d.properties.total_listings || 0}<br/>
+                <strong>Precio Medio:</strong> ${d.properties.avg_price || 0} €<br/>
+                <strong>Total Reseñas:</strong> ${d.properties.total_reviews || 0}
+            `);
+            d3.select(this).style("stroke", "#ff5a5f").style("stroke-width", "1.8px").raise();
+        }
+
+        function handleMouseMove(event) {
+            if (currentSceneGlobal === 2) return;
+            tooltip
+                .style("left", (event.pageX + 15) + "px")
+                .style("top",  (event.pageY - 20) + "px");
+        }
+
+        function handleMouseLeave() {
+            if (currentSceneGlobal === 2) return;
+            tooltip.style("opacity", 0);
+            d3.select(this)
+                .style("stroke", "#495057")
+                .style("stroke-width", currentSceneGlobal === 0 && !hasZoomedIn ? "0.4px" : "0.6px");
+        }
+
+        // 
+        function setupScrollTrigger() {
+            function evaluateScroll() {
+                const scrollTop    = window.scrollY;
+                const docHeight    = document.documentElement.scrollHeight - window.innerHeight;
+                const scrollPercent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                d3.select("#progress-bar").style("width", scrollPercent + "%");
+
+                let currentScene = activePropertyGlobal;
+                const steps = document.querySelectorAll(".step");
+
+                steps.forEach(step => {
+                    const rect = step.getBoundingClientRect();
+                    if (rect.top < window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.5) {
+                        currentScene = parseInt(step.getAttribute("data-scene"));
+                        steps.forEach(s => s.classList.remove("active"));
+                        step.classList.add("active");
+                    }
+                });
+
+                if (currentScene !== activePropertyGlobal) {
+                    activePropertyGlobal = currentScene;
+                    if (currentScene > 0) hasZoomedIn = true;
+                    manageScenes(currentScene);
+                }
+            }
+
+            window.addEventListener("scroll", evaluateScroll);
+        }
+    </script>
+    <section class="credits-section">
+    <h3>Fuentes de Datos</h3>
+    <p>
+        Los datos utilizados en este análisis han sido obtenidos de <strong>Inside Airbnb</strong>, 
+        un proyecto independiente que recopila y publica información pública sobre los alojamientos 
+        listados en Airbnb. Los ficheros correspondientes al municipio de Madrid están disponibles en:
+        <br/>
+        <a href="https://insideairbnb.com/get-the-data/" target="_blank" rel="noopener noreferrer">
+            https://insideairbnb.com/get-the-data/
+        </a>
+        — sección <em>Madrid, Community of Madrid, Spain</em>.
+    </p>
+    <p>Los ficheros empleados en la construcción de las visualizaciones son:</p>
+    <div class="credits-files">
+        <span>listings.csv</span>
+        <span>calendar.csv</span>
+        <span>reviews.csv</span>
+        <span>neighbourhoods.geojson</span>
+    </div>
+    <p style="margin-top: 20px; font-size: 0.8rem; color: #999;">
+        Los datos se publican bajo licencia <strong>Creative Commons Attribution 4.0</strong>.
+        Análisis elaborado por <strong>Gabriel Nicolás Rivadeneira Gómez</strong> 
+        para la asignatura de Visualización de Datos — Máster en Ciencia de Datos, UOC.
+    </p>
+</section>
+</body>
+</html>
